@@ -1,8 +1,8 @@
-# MachEmbodied-Dex1.0
+# ME-Dex-1.0
 
-**Contributor:** Li Auto | **Paper:** Pending | **arXiv:** Pending | **Original code:** https://github.com/Liuxuetao1219/MachEmbodied-Dex1.0
+**Contributor:** Li Auto | **Paper:** [Technical Report](https://machembodied.com/ME-Dex/ME-Dex1.0.html) | **arXiv:** Pending | **Original code:** https://github.com/MachEmbodied/ME-Dex-1.0
 
-`MachEmbodied_Dex1_0` is the eval-only XPolicyLab adapter for the MachEmbodied-Dex1.0 RoboTwin Clean50-to-Random
+`ME_Dex_1_0` is the eval-only XPolicyLab adapter for the ME-Dex-1.0 RoboTwin Clean50-to-Random
 checkpoint. It supports `bench_name=RoboTwin`, `env_cfg_type=arx_x5`, and
 `action_type=joint`.
 
@@ -14,7 +14,7 @@ Shared conventions — argument meanings, checkpoint naming, split-machine deplo
 
 ```bash
 conda activate <policy_env>
-cd XPolicyLab/policy/MachEmbodied_Dex1_0
+cd XPolicyLab/policy/ME_Dex_1_0
 bash install.sh
 ```
 
@@ -31,9 +31,9 @@ Unsupported in this eval-only submission (release ETA: TBD).
 ## Evaluation
 
 ```bash
-CHECKPOINT_DIR=checkpoints/MachEmbodied-Dex1.0-RoboTwin-Clean2Random-Leaderboard
+CHECKPOINT_DIR=checkpoints/ME-Dex-1.0-RoboTwin-Clean2Random-Leaderboard
 
-hf download liuxuetao/MachEmbodied-Dex1.0-RoboTwin-Clean2Random-Leaderboard \
+hf download liuxuetao/ME-Dex-1.0-RoboTwin-Clean2Random-Leaderboard \
   --local-dir "${CHECKPOINT_DIR}"
 
 hf download Wan-AI/Wan2.2-TI2V-5B \
@@ -47,17 +47,17 @@ hf download Wan-AI/Wan2.2-TI2V-5B \
   --local-dir "${CHECKPOINT_DIR}/wan"
 ```
 
-The MachEmbodied-Dex repository provides `model.pt`, `tactile_ae.pt`, `model_config.json`, and
+The ME-Dex-1.0 repository provides `model.pt`, `tactile_ae.pt`, `model_config.json`, and
 `manifest.json`; the second command downloads the required Wan2.2 assets.
 
 ```bash
-cd XPolicyLab/policy/MachEmbodied_Dex1_0
+cd XPolicyLab/policy/ME_Dex_1_0
 bash eval.sh RoboTwin adjust_bottle \
-  MachEmbodied-Dex1.0-RoboTwin-Clean2Random-Leaderboard \
+  ME-Dex-1.0-RoboTwin-Clean2Random-Leaderboard \
   arx_x5 joint 42 0 0 <policy_env> <robotwin_env>
 ```
 
-`<policy_env>` runs MachEmbodied-Dex1.0; `<robotwin_env>` runs RoboTwin/SAPIEN.
+`<policy_env>` runs ME-Dex-1.0; `<robotwin_env>` runs RoboTwin/SAPIEN.
 
 ## Configuration
 
@@ -65,6 +65,6 @@ This BGR-trained checkpoint sets `input_color_order: bgr`, applying one RGB-to-B
 before inference. Images are scaled to `[0, 1]` without mean/std normalization.
 
 Clean50 training included collected three-axis tactile force arrays. RoboTwin evaluation has no
-tactile observation, so both tactile input frames are zero.
+tactile observation, so the current-frame tactile force is set to zero.
 
 The model returns 16 joint targets at t+3, t+6, ..., t+48; XPolicyLab submits them sequentially.
