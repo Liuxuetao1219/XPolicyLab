@@ -14,11 +14,7 @@ from XPolicyLab.utils.process_data import get_robot_action_dim_info
 
 XPL_ROOT = Path(__file__).resolve().parents[2]
 BENCH_ROOT = XPL_ROOT.parent
-DEFAULT_SOURCE = (
-    Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
-    / "me_dex_1_0"
-    / "source"
-)
+RUNTIME_ROOT = Path(__file__).resolve().parent / "runtime"
 
 
 def _required_path(value: Any, name: str) -> Path:
@@ -40,7 +36,7 @@ def _instruction(obs: dict[str, Any]) -> str:
 
 
 class Model(ModelTemplate):
-    """Eval-only ME-Dex-1.0 adapter for Aloha-AgileX joint control."""
+    """ME-Dex-1.0 adapter for Aloha-AgileX joint control."""
 
     def __init__(self, model_cfg: dict[str, Any]):
         self.model_cfg = model_cfg
@@ -62,8 +58,7 @@ class Model(ModelTemplate):
             ("right_ee_joint_state", ee_dims[1]),
         )
         self.action_dim = sum(size for _, size in self.action_layout)
-        source = Path(os.environ.get("ME_DEX_ROOT", DEFAULT_SOURCE)).expanduser().resolve()
-        sys.path.insert(0, str(source / "runtime"))
+        sys.path.insert(0, str(RUNTIME_ROOT))
         from policy import MEDexPolicy
 
         checkpoint = resolve_checkpoint_root(model_cfg, BENCH_ROOT / "checkpoints")

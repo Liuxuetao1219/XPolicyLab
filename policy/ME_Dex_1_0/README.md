@@ -1,14 +1,9 @@
 # ME-Dex-1.0
 
-**Contributor:** Li Auto | **Paper:** [Technical Report](https://machembodied.com/ME-Dex/ME-Dex1.0.html) | **arXiv:** Pending | **Original code:** https://github.com/MachEmbodied/ME-Dex-1.0
+**Contributor:** Li Auto ME-Dex Team | **Paper:** [Technical Report](https://machembodied.com/ME-Dex/ME-Dex1.0.html) | **Original code:** https://github.com/MachEmbodied/ME-Dex-1.0
 
-`ME_Dex_1_0` is the eval-only XPolicyLab adapter for the ME-Dex-1.0 RoboTwin Clean50-to-Random
-checkpoint. It supports `bench_name=RoboTwin`, `env_cfg_type=arx_x5`, and
-`action_type=joint`.
-
-Shared conventions — argument meanings, checkpoint naming, split-machine deployment, and
-`EVAL_ENV_TYPE` — are documented in the [XPolicyLab README](../../README.md). Official results:
-[RoboTwin Leaderboard](https://robotwin-platform.github.io/leaderboard).
+`ME_Dex_1_0` is the XPolicyLab adapter for RoboTwin. It supports
+`bench_name=RoboTwin`, `env_cfg_type=arx_x5`, and `action_type=joint`.
 
 ## Installation
 
@@ -20,15 +15,9 @@ bash install.sh
 
 Install RoboTwin separately in `<robotwin_env>` following its official instructions.
 
-## Data Processing
-
-Unsupported in this eval-only submission.
-
-## Training
-
-Unsupported in this eval-only submission (release ETA: TBD).
-
 ## Evaluation
+
+Download the ME-Dex-1.0 checkpoint and the Wan2.2 assets:
 
 ```bash
 CHECKPOINT_DIR=checkpoints/ME-Dex-1.0-RoboTwin-Clean2Random-Leaderboard
@@ -37,9 +26,7 @@ hf download liuxuetao/ME-Dex-1.0-RoboTwin-Clean2Random-Leaderboard \
   --local-dir "${CHECKPOINT_DIR}"
 
 hf download Wan-AI/Wan2.2-TI2V-5B \
-  config.json \
-  Wan2.2_VAE.pth \
-  models_t5_umt5-xxl-enc-bf16.pth \
+  config.json Wan2.2_VAE.pth models_t5_umt5-xxl-enc-bf16.pth \
   google/umt5-xxl/special_tokens_map.json \
   google/umt5-xxl/spiece.model \
   google/umt5-xxl/tokenizer.json \
@@ -47,24 +34,41 @@ hf download Wan-AI/Wan2.2-TI2V-5B \
   --local-dir "${CHECKPOINT_DIR}/wan"
 ```
 
-The ME-Dex-1.0 repository provides `model.pt`, `tactile_ae.pt`, `model_config.json`, and
-`manifest.json`; the second command downloads the required Wan2.2 assets.
+Run the standard RoboTwin evaluation:
 
 ```bash
 cd XPolicyLab/policy/ME_Dex_1_0
+ROBOTWIN_TASK_CONFIG=demo_randomized \
+ROBOTWIN_TEST_NUM=100 \
 bash eval.sh RoboTwin adjust_bottle \
   ME-Dex-1.0-RoboTwin-Clean2Random-Leaderboard \
   arx_x5 joint 42 0 0 <policy_env> <robotwin_env>
 ```
 
-`<policy_env>` runs ME-Dex-1.0; `<robotwin_env>` runs RoboTwin/SAPIEN.
+Use `ROBOTWIN_TASK_CONFIG=demo_clean` for Clean evaluation. The checkpoint expects
+`input_color_order: bgr`. RoboTwin has no tactile observations, so the current tactile
+frame is set to zero while preserving the sensor support mask.
 
-## Configuration
+## Training
 
-This BGR-trained checkpoint sets `input_color_order: bgr`, applying one RGB-to-BGR conversion
-before inference. Images are scaled to `[0, 1]` without mean/std normalization.
+The reference Clean50 training code is in `training/`. It includes the data loader,
+configuration, distributed entry point, and the RoboTwin tactile replay collector.
 
-Clean50 training included collected three-axis tactile force arrays. RoboTwin evaluation has no
-tactile observation, so the current-frame tactile force is set to zero.
+```bash
+cd XPolicyLab/policy/ME_Dex_1_0
+python -m pip install -r training/requirements.txt
+torchrun --nnodes=2 --nproc_per_node=16 \
+  -m training.train --config training/configs/clean50_uni.yaml
+```
 
-The model returns 16 joint targets at t+3, t+6, ..., t+48; XPolicyLab submits them sequentially.
+Set the dataset, T5 cache, initialization checkpoint, tactile checkpoint, and Wan2.2
+paths in `training/configs/clean50_uni.yaml` before starting a run. Set `model.topology`
+to `full_joint` or `h_bridge` for the corresponding attention topology.
+
+`training/robotwin_tactile/tactile_force_field.py` is the simulator-side collector used
+to replay the original Clean50 demonstrations and append aligned three-axis tactile
+fields. Its integration and configuration are documented in
+`training/robotwin_tactile/README.md`.
+
+The released checkpoint reports 88.9% on Clean, 71.9% on Random, and 80.4% average on
+the RoboTwin benchmark.
